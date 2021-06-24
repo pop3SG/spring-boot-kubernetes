@@ -44,5 +44,11 @@ pipeline {
                 }
            }
         }
+	 stage ('SCA') {
+            steps {
+                sh 'mvn org.owasp:dependency-check-maven:check'
+                dependencyCheckPublisher failedNewCritical: 5, failedTotalCritical: 10, pattern: 'terget/dad.xml', unstableNewCritical: 3, unstableTotalCritical: 5
+            }
+        }    
     }
 }
