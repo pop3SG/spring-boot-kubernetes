@@ -6,9 +6,7 @@ pipeline {
     stages {
         stage ('Initial') {
             steps {
-              echo '========================================='
-              echo '                INITIAL '
-              echo '========================================='
+              figlet ' INICIO '
               sh '''
                    echo "PATH = ${PATH}"
                    echo "M2_HOME = ${M2_HOME}"
@@ -17,29 +15,24 @@ pipeline {
         }
 		stage ('CheckOut'){
             steps {
-				echo '========================================='
-                echo '                CHECK OUT GIT '
-                echo '========================================='
+		figlet ' CHECK OUT GIT '
                 checkout([$class: 'GitSCM', branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/pop3SG/spring-boot-kubernetes']]])
             }
         }
         stage ('Compile') {
             steps {
-                echo '========================================='
-                echo '                COMPILE '
-                echo '========================================='
+                figlet 'Compilar Aplicacion'
                  sh 'mvn clean compile -e'
             }
         }
         stage('SonarQube analysis') {
            steps{
-                echo '========================================='
-                echo '                SONARQUBE '
-                echo '========================================='
+                figlet 'Scan SonarQube'
                 script {
                     def scannerHome = tool 'SonarQube Scanner';
                     withSonarQubeEnv('Sonar Server') {
-                      sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=tarea4 -Dsonar.java.binaries=target/ -Dsonar.host.url=http://172.18.0.4:9000 -Dsonar.login=e8613a293a10c2a3f833e3685dbc11d674f80acb"
+                    //sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=tarea4 -Dsonar.sources=target/ -Dsonar.host.url=http://172.18.0.3:9000 -Dsonar.login=f74fc670543b5f3d217066fcdd8340ec592be0cd"
+                    sh '${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=tarea4 -Dsonar.sources=target/ -Dsonar.host.url=http://172.18.0.4:9000 -Dsonar.login=e8613a293a10c2a3f833e3685dbc11d674f80acb'
                     }
                 }
            }
