@@ -5,44 +5,65 @@ pipeline {
     }
     stages {
         stage ('Initial') {
-            steps {
-              figlet ' INICIO '
-              sh '''
-                   echo "PATH = ${PATH}"
-                   echo "M2_HOME = ${M2_HOME}"
-               '''
+         	steps {
+              		figlet ' INICIO '
+              		sh '''
+                   	echo "PATH = ${PATH}"
+                   	echo "M2_HOME = ${M2_HOME}"
+               		'''
             }
         }
-		stage ('CheckOut'){
-            steps {
-		figlet ' CHECK OUT GIT '
-                checkout([$class: 'GitSCM', branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/pop3SG/spring-boot-kubernetes']]])
-            }
+	stage ('CheckOut'){
+            	steps {
+			figlet ' CHECK OUT GIT '
+                	checkout([$class: 'GitSCM', branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/pop3SG/spring-boot-kubernetes']]])
+            	}
         }
         stage ('Compile') {
-            steps {
-                figlet 'Compilar Aplicacion'
+        	steps {
+                	figlet 'Compilar Aplicacion'
                  sh 'mvn clean compile -e'
             }
         }
         stage('SonarQube analysis') {
-           steps{
-                figlet 'Scan SonarQube'
-                script {
-                    def scannerHome = tool 'SonarQube Scanner';
-                    withSonarQubeEnv('Sonar Server') {
-                    //sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=tarea4 -Dsonar.sources=target/ -Dsonar.host.url=http://172.18.0.3:9000 -Dsonar.login=f74fc670543b5f3d217066fcdd8340ec592be0cd"
-                    sh '${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=tarea4 -Dsonar.sources=target/ -Dsonar.host.url=http://172.18.0.4:9000 -Dsonar.login=e8613a293a10c2a3f833e3685dbc11d674f80acb'
+           	steps{
+           		figlet 'Scan SonarQube'
+                	script {
+                		def scannerHome = tool 'SonarQube Scanner';
+	                	withSonarQubeEnv('Sonar Server') {
+        	        		//sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=tarea4 -Dsonar.sources=target/ -Dsonar.host.url=http://172.18.0.3:9000 -Dsonar.login=f74fc670543b5f3d217066fcdd8340ec592be0cd"
+                 			sh '${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=tarea4 -Dsonar.sources=target/ -Dsonar.host.url=http://172.18.0.4:9000 -Dsonar.login=e8613a293a10c2a3f833e3685dbc11d674f80acb'
                     }
                 }
            }
         }
-	 stage ('SCA') {
-            steps {
-                sh 'mvn org.owasp:dependency-check-maven:check'
-                dependencyCheckPublisher failedNewCritical: 5, failedTotalCritical: 10, pattern: 'dependency-check-report.xml', unstableNewCritical: 3, unstableTotalCritical: 5
+	stage ('SCA') {
+        	steps {
+		figlet 'SCA'
+                	sh 'mvn org.owasp:dependency-check-maven:check'
+                	dependencyCheckPublisher failedNewCritical: 5, failedTotalCritical: 10, pattern: 'dependency-check-report.xml', unstableNewCritical: 3, unstableTotalCritical: 5
             }
         } 
+	stage('Scan Docker') {
+		steps {
+			figlet 'Scan docker'
+			script {
+				//Variables Docker	
+				env.DOCKER = tool 'Docker';
+				env.DOCKER_EXEC = "${DOCKER}/bin/docker"
+				//muestra variable Docker_exec 	
+				echo "${DOCKER_EXEC}"
+				// descargar dcker trivy
+				sh '${DOCKER_EXEC} pull aquasec/trivy:0.18.3'
+				//scaner docker git de la tarea 7
+				sh '${DOCKER_EXEC} run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /home/arqcloud/owasp-zap:/root/.cache/ aquasec/trivy:0.18.3 repo https://github.com/PheaSoy/spring-boot-kubernetes'
+				//scaner docker git de ejemplo https://github.com/knqyf263/trivy-ci-test 
+				//sh '${DOCKER_EXEC} run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /home/arqcloud/owasp-zap:/root/.cache/  aquasec/trivy:0.18.3 https://github.com/knqyf263/trivy-ci-test'
+				//scaner docker anaizando docker vulnerables/web-dvwa 
+				//sh '${DOCKER_EXEC} run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /home/arqcloud/owasp-zap:/root/.cache/  aquasec/trivy:0.18.3 vulnerables/web-dvwa'
+			}
+		}
+	} 
 	stage('ZAP') {
         	steps {
         	    figlet 'Owasp Zap DAST'
